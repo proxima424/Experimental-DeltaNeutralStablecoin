@@ -48,7 +48,7 @@ interface IDNSfactory{
     }
 
     function takeShortPosition(){
-        // 
+        //
     }
 
     function burnDNS(){
