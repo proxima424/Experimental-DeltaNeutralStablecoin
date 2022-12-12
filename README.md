@@ -10,3 +10,7 @@
 ├─ DNSprice.sol —  Contract for interacting with Chainlink oracle
 
 ```
+
+## Structure
+
+![Raw Architechture](Plan.png)
