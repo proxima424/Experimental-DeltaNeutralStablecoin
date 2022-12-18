@@ -82,7 +82,66 @@ interface DNSfactory is Ownable, DNSerc721 {
         return positionData;
     }
 
-    function mint
+    function mintERC721Position(uint256 _tokenId) public external {
+        require(checkTokenIdOwner[_tokenId] == msg.sender, "INVALID_OWNER");
+        require(!isMinted[_tokenId], "INVALID_MINT");
+        isMinted[_tokenId] = true;
+        _mint(msg.sender, tokenId);
+    }
+
+    function updateMappingOnTransfer(
+        uint256 _tokenId,
+        address _oldOwner,
+        address _newOwner
+    )
+        internal
+    {
+        checkTokenIdOwner[_tokenId] = _newOwner;
+    }
+
+    // Override _transfer and include updateMapping function
+    function _transfer(address from, address to, uint256 tokenId)
+        internal
+        virtual
+        override
+    {
+        require(
+            ERC721.ownerOf(tokenId) == from,
+            "ERC721: transfer from incorrect owner"
+        );
+        require(to != address(0), "ERC721: transfer to the zero address");
+
+        _beforeTokenTransfer(from, to, tokenId, 1);
+
+        // Check that tokenId was not transferred by `_beforeTokenTransfer` hook
+        require(
+            ERC721.ownerOf(tokenId) == from,
+            "ERC721: transfer from incorrect owner"
+        );
+
+        // Clear approvals from the previous owner
+        delete _tokenApprovals[tokenId];
+
+        unchecked {
+            // `_balances[from]` cannot overflow for the same reason as described in `_burn`:
+            // `from`'s balance is the number of token held, which is at least one before the current
+            // transfer.
+            // `_balances[to]` could overflow in the conditions described in `_mint`. That would require
+            // all 2**256 token ids to be minted, which in practice is impossible.
+            _balances[from] -= 1;
+            _balances[to] += 1;
+        }
+        _owners[tokenId] = to;
+
+        updateMappingOnTransfer(tokenId, from, to);
+
+        emit Transfer(from, to, tokenId);
+
+        _afterTokenTransfer(from, to, tokenId, 1);
+    }
+
+    //Tasks left
+    // mint ERC20 DNS stablecoin and create a short position on a DEX 
 }
 ///// USER FLOW //////////////
 //// User deposits collateral ////
