@@ -1,67 +1,52 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15
 
 
-interface IDNSfactory{
-    constructor(){}
-    
-    /////////////////////////// STORAGE ///////////////////////////////////
+//dependencies
+import {DNSerc721} from "./DNSerc721.sol";
 
-    address immutable DNSerc721;
+import {Ownable} from
+    "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+
+// interfaces
+import {IERC20} from
+    "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC721} from
+    "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+
+interface DNSfactory is Ownable, DNSerc721 {
+    /////////////////////////// STORAGE ///////////////////////////////////
     address immutable DNSerc20;
 
-    struct CollateralData{
-        address _erc20;  //160 bits
-        uint96 _amount;  // 96 bits 
+
+    mapping(uint256 => CollateralData) tokenIDToPosition;
+    mapping(address => uint256) DNSbalance;
+
+    struct CollateralData {
+        address _erc20; //160 bits
+        uint96 _amount; // 96 bits
     }
-    mapping(uint256=>CollateralData) tokenIDToPosition; 
-    mapping(address=>uint256) DNSbalance;
+
+    constructor(string memory name_, string memory symbol_, address _DNSerc20)
+        DNSerc721(name_, symbol_)
+    {
+        DNSerc20 = _DNSerc20;
+    }
+
+    ///// USER FLOW //////////////
+    //// User deposits collateral ////
+    //// Converts data of this collateral into a position ////
+    //// Mints an ERC721 Specifying this position ////
+    //// Another function called claimDNS which takes into account this
+
     
 
-    function deployERC721(){
-        // to be called only once 
-        // Deploys the parent ERC721 contract
-    }
-    
-    function depositCollateral(){
-        // Transfers ERC20(address) to address(this)
-        // Updates mapping,structs 
-        // Mints ERC721 with tokenId specifying this position
-    }
-
-    function mintERC721(){
-        // To be called by depositCollateral
-        // Constructs tokenID from input parameters
-        // Calls DNSerc721 and mints the SVG NFT
-    }
-
-    function mintDNS(){
-        // Checks whether caller is owner of the given tokenID
-        // Reconstructs params from PositionData struct
-        // Takes short position of the given asset 
-        // Calls ChainlinkFunction which returns amount of DNS to be minted
-        // Calls DNSerc20 and mints $DNS 
-    }
-
-    function getPricefromChainlink(){
-        // Calls AggregatorV3Interface to fetch value of the asset in USD
-        // Returns uint256 DNS Amount
-    }
-
-    function takeShortPosition(){
-        //
-    }
-
-    function burnDNS(){
-        // Calls DNSerc20 and burns $DNS
-    }
+    function mintERC20DNS(){}
+    function burnERC20DNS(){}
+    function mintERC721DNS(){}
+    function calculateDNS(){}
 
 
-    
-    
-
-
-    
-    
 
 
 
