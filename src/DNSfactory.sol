@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.15
-
+pragma solidity ^0.8.15;
 
 //dependencies
+import {DNSerc20} from "./DNSerc20.sol";
+
 import {DNSerc721} from "./DNSerc721.sol";
 
 import {Ownable} from
     "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
-// interfaces
+// // interfaces
 import {IERC20} from
     "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+
 import {IERC721} from
     "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
 interface DNSfactory is Ownable, DNSerc721 {
     /////////////////////////// STORAGE ///////////////////////////////////
-    address immutable DNSerc20;
+    address immutable DNSerc20_Address;
 
     mapping(address => uint256) DNSbalance;
 
@@ -37,11 +39,7 @@ interface DNSfactory is Ownable, DNSerc721 {
 
     constructor(string memory name_, string memory symbol_, address _DNSerc20)
         DNSerc721(name_, symbol_)
-    {
-        DNSerc20 = _DNSerc20;
-    }
-
-    // Frontend first prompts user to call approve()
+    {}
 
     function constructTokenId(
         address _user,
@@ -60,6 +58,7 @@ interface DNSfactory is Ownable, DNSerc721 {
         );
     }
 
+    // Frontend first prompts user to call approve()
     function createPosition(address _collateral, uint256 _amount)
         external
         returns (CollateralData memory)
@@ -67,8 +66,9 @@ interface DNSfactory is Ownable, DNSerc721 {
         require(_collateral != address(0), "ZERO_ADDRESS");
         require(_amount != 0, "ZERO_AMOUNT");
 
-        IERC20(_collateral).transferFrom(msg.sender, address(this), _amount);
-
+        bool success =
+            IERC20(_collateral).transferFrom(msg.sender, address(this), _amount);
+        require(success, "TRANSFER_FAILED");
         uint256 currentTokenId =
             constructTokenId(msg.sender, _collateral, _amount);
         CollateralData memory positionData =
@@ -141,7 +141,26 @@ interface DNSfactory is Ownable, DNSerc721 {
     }
 
     //Tasks left
-    // mint ERC20 DNS stablecoin and create a short position on a DEX 
+    // mint ERC20 DNS stablecoin and create a short position on a DEX
+
+    function deployDNSerc20() external onlyOwner {
+        DNSerc20 DNStoken = new DNSerc20("DNS","DNS",address(this));
+        DNSerc20_Address = address(DNStoken);
+    }
+
+    function getAmountDNSToMint(address _erc20,uint256 _quantity) internal returns(uint256 quantity){
+
+
+    }
+
+    function mintERC20DNS( uint256 theTokenId  ) external returns(bool){
+        require(!isMinted[theTokenId],"ALREADY_MINTED");
+        CollateralData memory userPosition = tokenIDToPosition[theTokenId];
+        uint256 DNS_TO_MINT = getAmountDNSToMint(userPosition.token,userPosition.amount);
+        isMinted[theTokenId] = true;
+        IERC20(DNSerc20_Address).mint(msg.sender,DNS_TO_MINT);
+        // create short position
+    }
 }
 ///// USER FLOW //////////////
 //// User deposits collateral ////
