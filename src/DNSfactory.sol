@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
+// Supports LINK Tokens as support for now
+
 //dependencies
 import {DNSerc20} from "./DNSerc20.sol";
 
@@ -16,6 +18,8 @@ import {IERC20} from
 import {IERC721} from
     "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
+import {AggregatorV3Interface} from "./AggregatorV3Interface.sol";
+
 interface DNSfactory is Ownable, DNSerc721 {
     /////////////////////////// STORAGE ///////////////////////////////////
     address immutable DNSerc20_Address;
@@ -30,6 +34,12 @@ interface DNSfactory is Ownable, DNSerc721 {
     mapping(uint256 => address) checkTokenIdOwner;
     // tokenId => isMinted
     mapping(uint256 => bool) isMinted;
+    // erc20Address => ChainlinkPriceFeed Address
+    mapping(address => address) chainLinkPriceFeed;
+    // erc20Address => Issupported
+    mapping(address => bool) isERC20Supported;
+
+    AggregatorV3Interface internal priceFeed;
 
     struct CollateralData {
         address token;
@@ -39,7 +49,19 @@ interface DNSfactory is Ownable, DNSerc721 {
 
     constructor(string memory name_, string memory symbol_, address _DNSerc20)
         DNSerc721(name_, symbol_)
-    {}
+    {
+        //LINK Tokens
+        priceFeed =
+            AggregatorV3Interface(0x48731cF7e84dc94C5f84577882c14Be11a5B7456);
+    }
+
+    function addERC20Support(address _erc20, address _ChainlinkFeed)
+        external
+        onlyOwner
+    {
+        isERC20Supported[_erc20] = true;
+        chainLinkPriceFeed[_erc20] = _ChainlinkFeed;
+    }
 
     function constructTokenId(
         address _user,
@@ -141,27 +163,53 @@ interface DNSfactory is Ownable, DNSerc721 {
     }
 
     //Tasks left
-    // mint ERC20 DNS stablecoin and create a short position on a DEX
+    //Get amount to Mint
+    //Create a short position on a DEX
 
     function deployDNSerc20() external onlyOwner {
         DNSerc20 DNStoken = new DNSerc20("DNS","DNS",address(this));
         DNSerc20_Address = address(DNStoken);
     }
 
-    function getAmountDNSToMint(address _erc20,uint256 _quantity) internal returns(uint256 quantity){
-
-
+    function getLatestPrice(address _Chainlink) public view returns (int256) {
+        (
+            uint80 roundID,
+            int256 price,
+            uint256 startedAt,
+            uint256 timeStamp,
+            uint80 answeredInRound
+        ) = AggregatorV3Interface(_Chainlink).latestRoundData();
+        // for LINK / USD price
+        return price;
     }
 
-    function mintERC20DNS( uint256 theTokenId  ) external returns(bool){
-        require(!isMinted[theTokenId],"ALREADY_MINTED");
+    function getAmountDNSToMint(address _erc20, uint256 _quantity)
+        internal
+        returns (uint256 quantity)
+    {
+        require(isERC20Supported[_erc20], "DNS_NOT_SUPPORTED");
+        uint256 quantity = getLatestPrice(chainLinkPriceFeed[_erc20]);
+        quantity = quantity * (10 ** 10) * _quantity;
+    }
+
+    function 
+
+    function mintERC20DNS(uint256 theTokenId) external returns (bool) {
+        require(!isMinted[theTokenId], "ALREADY_MINTED");
         CollateralData memory userPosition = tokenIDToPosition[theTokenId];
-        uint256 DNS_TO_MINT = getAmountDNSToMint(userPosition.token,userPosition.amount);
+        uint256 DNS_TO_MINT =
+            getAmountDNSToMint(userPosition.token, userPosition.amount);
         isMinted[theTokenId] = true;
-        IERC20(DNSerc20_Address).mint(msg.sender,DNS_TO_MINT);
+        IERC20(DNSerc20_Address).mint(msg.sender, DNS_TO_MINT);
         // create short position
     }
+
+
+
+
 }
+
+
 ///// USER FLOW //////////////
 //// User deposits collateral ////
 //// Converts data of this collateral into a position ////
