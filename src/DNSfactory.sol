@@ -45,6 +45,7 @@ interface DNSfactory is Ownable, DNSerc721 {
         address token;
         uint256 amount;
         uint256 tokenId;
+        uint256 startPrice;
     }
 
     constructor(string memory name_, string memory symbol_, address _DNSerc20)
@@ -192,7 +193,7 @@ interface DNSfactory is Ownable, DNSerc721 {
         quantity = quantity * (10 ** 10) * _quantity;
     }
 
-    function 
+    function createShortPosition()
 
     function mintERC20DNS(uint256 theTokenId) external returns (bool) {
         require(!isMinted[theTokenId], "ALREADY_MINTED");
