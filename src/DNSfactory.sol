@@ -5,16 +5,13 @@ pragma solidity ^0.8.15;
 
 //dependencies
 import {DNSerc20} from "./DNSerc20.sol";
-
 import {DNSerc721} from "./DNSerc721.sol";
-
 import {Ownable} from
     "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 // // interfaces
 import {IERC20} from
     "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
 import {IERC721} from
     "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
@@ -23,8 +20,6 @@ import {AggregatorV3Interface} from "./AggregatorV3Interface.sol";
 interface DNSfactory is Ownable, DNSerc721 {
     /////////////////////////// STORAGE ///////////////////////////////////
     address immutable DNSerc20_Address;
-
-    mapping(address => uint256) DNSbalance;
 
     // address => nonceCount
     mapping(address => uint256) addressNonce;
@@ -64,6 +59,7 @@ interface DNSfactory is Ownable, DNSerc721 {
         chainLinkPriceFeed[_erc20] = _ChainlinkFeed;
     }
 
+
     function constructTokenId(
         address _user,
         address _collateral,
@@ -94,9 +90,11 @@ interface DNSfactory is Ownable, DNSerc721 {
         require(success, "TRANSFER_FAILED");
         uint256 currentTokenId =
             constructTokenId(msg.sender, _collateral, _amount);
+        uint256 currentPrice = uint256(getLatestPrice(chainLinkPriceFeed[_erc20]));
         CollateralData memory positionData =
-        new CollateralData({ token:_collateral,amount:_amount, tokenId : currentTokenId});
+        new CollateralData({ token:_collateral,amount:_amount, tokenId : currentTokenId, startPrice: currentPrice});
         //create function called updateMappings
+
         tokenIDToPosition[currentTokenId] = positionData;
         nonceData[msg.sender]++;
         checkTokenIdOwner[currentTokenId] = msg.sender;
@@ -164,7 +162,6 @@ interface DNSfactory is Ownable, DNSerc721 {
     }
 
     //Tasks left
-    //Get amount to Mint
     //Create a short position on a DEX
 
     function deployDNSerc20() external onlyOwner {
@@ -189,11 +186,11 @@ interface DNSfactory is Ownable, DNSerc721 {
         returns (uint256 quantity)
     {
         require(isERC20Supported[_erc20], "DNS_NOT_SUPPORTED");
-        uint256 quantity = getLatestPrice(chainLinkPriceFeed[_erc20]);
+        uint256 quantity = uint256(getLatestPrice(chainLinkPriceFeed[_erc20]));
         quantity = quantity * (10 ** 10) * _quantity;
     }
 
-    function createShortPosition()
+    function createShortPosition() internal returns(bool);
 
     function mintERC20DNS(uint256 theTokenId) external returns (bool) {
         require(!isMinted[theTokenId], "ALREADY_MINTED");
@@ -201,8 +198,10 @@ interface DNSfactory is Ownable, DNSerc721 {
         uint256 DNS_TO_MINT =
             getAmountDNSToMint(userPosition.token, userPosition.amount);
         isMinted[theTokenId] = true;
+        bool success = createShortPosition();
+        require(success,"INVALID_ATTEMPT");
         IERC20(DNSerc20_Address).mint(msg.sender, DNS_TO_MINT);
-        // create short position
+        return true;
     }
 
 
