@@ -2,12 +2,19 @@
 ## Delta Neutral Stablecoin? WTF?
 
 `Delta Neutral Stablecoin` is one of the very few elegant stablecoin design mechanisms in the crypto space right now. </br>
-The UXD Stablecoin on Solana(now on EVM chains too?) is minted to the user after he deposits collateral amount X of an asset A</br>
-and the protocol then opens a short position of corresponding amount X in a Derivative DEX.</br>
-You see the Delta Neutral Nature yet Anon? </br>
-Lets say the price at minting of the position was Y USD.
+What the `Delta Neutral` stands for is the hedged risk the stablecoin offers via creating a derivative position.</br>
+The `UXD Stablecoin` is one of the best examples of a `DNS` implemented on top of `Mango Market`</br>
+In this repo, I try to simulate a Delta-Neutral-Stablecoin
 
-If the price of asset A increases by Z%. The PNL on the protocol amounts to X*(Y+ (ZY/100)) - X*(Y)
+Here's how it works : </br>
+
+1) User deposits `amount X` of an `asset Y` with the current price being `Z USD`. </br>
+2) The protocol goes ahead and mints `X*Z` amount of `DNS` to the user corresponding to the deposited amount. </br>
+3) The protocol goes ahead and creates a short position of the same asset in a Derivative DEX to `hedge the volatility risk` </br>
+
+You see the Delta Neutral Nature yet Anon? </br>
+
+If  price of the asset Y changes by `\Delta$ a`, the `ProfitNLoss` on his deposited amount grows to X*(Z + \Delta$ a * Z )
 The PNL on the short position opened up amounts to -X*(ZY/100)
 You add that up, you get 0
 
