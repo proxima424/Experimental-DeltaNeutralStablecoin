@@ -19,7 +19,11 @@ import {AggregatorV3Interface} from "./AggregatorV3Interface.sol";
 
 interface DNSfactory is Ownable, DNSerc721 {
     /////////////////////////// STORAGE ///////////////////////////////////
-    address immutable DNSerc20_Address;
+
+    // DNS minting ERC20 address
+    address public immutable DNSerc20_Address;
+    // Dummy contract manipulating ShortPosition
+    address public immutable DNS_ShortPosition;
 
     // address => nonceCount
     mapping(address => uint256) addressNonce;
@@ -34,6 +38,7 @@ interface DNSfactory is Ownable, DNSerc721 {
     // erc20Address => Issupported
     mapping(address => bool) isERC20Supported;
 
+    /// @notice Chainlink Price Feed
     AggregatorV3Interface internal priceFeed;
 
     struct CollateralData {
@@ -190,8 +195,15 @@ interface DNSfactory is Ownable, DNSerc721 {
         quantity = quantity * (10 ** 10) * _quantity;
     }
 
-    function createShortPosition() internal returns(bool);
+    function createShortPosition() internal returns(bool){
 
+    }
+
+    function getShortPositionData() public returns(int256){
+
+    }
+
+  
     function mintERC20DNS(uint256 theTokenId) external returns (bool) {
         require(!isMinted[theTokenId], "ALREADY_MINTED");
         CollateralData memory userPosition = tokenIDToPosition[theTokenId];
