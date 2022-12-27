@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-// Supports LINK Tokens as support for now
+// Supports LINK Tokens as collateral for now
 
 //dependencies
-import {DNSerc20} from "./DNSerc20.sol";
-import {DNSerc721} from "./DNSerc721.sol";
+import {DNSerc20} from
+    "./DNSerc20.sol";
+import {DNSerc721} from
+    "./DNSerc721.sol";
 import {Ownable} from
     "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
-// // interfaces
+//interfaces
 import {IERC20} from
     "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from
     "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
-
-import {AggregatorV3Interface} from "./AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from
+    "./AggregatorV3Interface.sol";
 
 interface DNSfactory is Ownable, DNSerc721 {
     /////////////////////////// STORAGE ///////////////////////////////////
@@ -51,7 +53,7 @@ interface DNSfactory is Ownable, DNSerc721 {
     constructor(string memory name_, string memory symbol_, address _DNSerc20)
         DNSerc721(name_, symbol_)
     {
-        //LINK Tokens
+        //LINK Tokens Price Feed GOERLI Testnet
         priceFeed =
             AggregatorV3Interface(0x48731cF7e84dc94C5f84577882c14Be11a5B7456);
     }
@@ -63,7 +65,6 @@ interface DNSfactory is Ownable, DNSerc721 {
         isERC20Supported[_erc20] = true;
         chainLinkPriceFeed[_erc20] = _ChainlinkFeed;
     }
-
 
     function constructTokenId(
         address _user,
@@ -87,7 +88,7 @@ interface DNSfactory is Ownable, DNSerc721 {
         external
         returns (CollateralData memory)
     {
-        require(_collateral != address(0), "ZERO_ADDRESS");
+        require(isERC20Supported[_collateral],"UNSUPPORTED_COLLATERAL");
         require(_amount != 0, "ZERO_AMOUNT");
 
         bool success =
@@ -95,7 +96,7 @@ interface DNSfactory is Ownable, DNSerc721 {
         require(success, "TRANSFER_FAILED");
         uint256 currentTokenId =
             constructTokenId(msg.sender, _collateral, _amount);
-        uint256 currentPrice = uint256(getLatestPrice(chainLinkPriceFeed[_erc20]));
+        uint256 currentPrice = uint256(getLatestPrice(chainLinkPriceFeed[_collateral]));
         CollateralData memory positionData =
         new CollateralData({ token:_collateral,amount:_amount, tokenId : currentTokenId, startPrice: currentPrice});
         //create function called updateMappings
@@ -186,29 +187,27 @@ interface DNSfactory is Ownable, DNSerc721 {
         return price;
     }
 
-    function getAmountDNSToMint(address _erc20, uint256 _quantity)
+    function getAmountDNSToMint(address _erc20, uint256 _quantity, uint256 _price)
         internal
         returns (uint256 quantity)
     {
         require(isERC20Supported[_erc20], "DNS_NOT_SUPPORTED");
-        uint256 quantity = uint256(getLatestPrice(chainLinkPriceFeed[_erc20]));
-        quantity = quantity * (10 ** 10) * _quantity;
+        uint256 quantity = _price * (10 ** 10) * _quantity;
     }
 
-    function createShortPosition() internal returns(bool){
 
+
+    function getCollateralParams(uint256 tokenId) public returns(uint256 _amount,uint256 _startPrice){
+        _amount = tokenIDToPosition[tokenId].amount;
+        _startPrice = tokenIDToPosition[tokenId].startPrice; // 6 decimals
     }
 
-    function getShortPositionData() public returns(int256){
 
-    }
-
-  
     function mintERC20DNS(uint256 theTokenId) external returns (bool) {
         require(!isMinted[theTokenId], "ALREADY_MINTED");
         CollateralData memory userPosition = tokenIDToPosition[theTokenId];
         uint256 DNS_TO_MINT =
-            getAmountDNSToMint(userPosition.token, userPosition.amount);
+            getAmountDNSToMint(userPosition.token, userPosition.amount, userPosition.startPrice);
         isMinted[theTokenId] = true;
         bool success = createShortPosition();
         require(success,"INVALID_ATTEMPT");
